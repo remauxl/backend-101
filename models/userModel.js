@@ -67,6 +67,9 @@ userSchema.pre('save', async function(next) {
     next();
 })
 
+
+
+
 // filter every query which start with find
 userSchema.pre(/^find/, function(next){
     this.find({active: {$ne: false}});
