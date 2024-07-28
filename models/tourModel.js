@@ -35,7 +35,8 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       default: 4.5,
       min: [1, "Rating must be min 1 "],
-      max: [5, "Rating must be max 5 "]
+      max: [5, "Rating must be max 5 "],
+      set: val => Math.round(val*10)/10
     },
     ratingsQuantity: {
       type: Number,
@@ -128,6 +129,7 @@ const tourSchema = new mongoose.Schema(
 
   tourSchema.index({price:1,ratingsAvarage:-1});
   tourSchema.index({slug:1});
+  tourSchema.index({startLocation: '2dsphere'});
 
 
   tourSchema.virtual('durationWeeks').get(function(){
@@ -194,13 +196,16 @@ tourSchema.post(/^find/,function(docs,next){
 
 // AGGREGATION MIDDLEWARE
 
-tourSchema.pre('aggregate',function(next){
+
+// IF geoNear is used, it must be the first stage in the pipeline EDIT THIS. VID172 8:30
+
+/* tourSchema.pre('aggregate',function(next){
   this.pipeline().unshift({ 
     $match: {secretTour: {$ne:true}}
   })
   console.log(this.pipeline());
   next();
-})
+}) */
 
   const Tour = mongoose.model('Tour',tourSchema);
   module.exports = Tour;
