@@ -69,11 +69,22 @@ exports.login =catchAsync(async (req,res,next) => {
     createSendToken(user,201,res);
 })
 
+exports.logout = (req, res) => {
+    res.cookie('jwt', 'loggedout', {
+      expires: new Date(Date.now() + 10 * 1000),
+      httpOnly: true
+    });
+    res.status(200).json({ status: 'success' });
+  };
+  
 exports.protect=catchAsync(async (req,res,next)=>{
     // Getting token and check it
     let token;
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
         token = req.headers.authorization.split(' ')[1];
+    }
+    else if (req.cookies.jwt) {
+        token = req.cookies.jwt;
     }
 
     if(!token){
@@ -84,19 +95,49 @@ exports.protect=catchAsync(async (req,res,next)=>{
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
     console.log(decoded);
     // Check if user still exist
-    const freshUser = await User.findById(decoded.id);
-    if (!freshUser) {
-        return next(new AppError('The token belong to this user doesnot exist aynmore!'));}
+    const currentUser = await User.findById(decoded.id);
+    if (!currentUser) {
+        return currentUser(new AppError('The token belong to this user doesnot exist aynmore!'));}
 
     // Check if user changed pass after token was issued
-    if (freshUser.changePasswordAfter(decoded.iat)) {
+    if (currentUser.changePasswordAfter(decoded.iat)) {
         return next(new AppError('Changed password. Log in again'),401);
     }
 
     //Access
-    req.user=freshUser;
+    req.user= currentUser;
+    res.locals.user = currentUser;
+
     next();
 })
+
+exports.isLoggedin=async (req,res,next)=>{
+    if(req.cookies.jwt){
+        try {
+        // 1 Verify Token
+        const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET);
+        
+        // 2 Check if user still exist
+        const currentUser = await User.findById(decoded.id);
+        if(!currentUser) {
+            return next();
+        }
+
+        // 3 İf user changed pass
+        if(currentUser.changePasswordAfter(decoded.iat)) {
+            return next();
+        }
+
+        res.locals.user = currentUser;
+        return next();
+        }
+        catch(err){
+            return next();
+        }
+
+    }
+    next();
+}
 
 // Middleware cant take arguments
 // Used wrapper function
@@ -179,7 +220,7 @@ exports.resetPassword = catchAsync(async(req,res,next) => {
 })
 
 
-exports.updatePassword = catchAsync(async(req,res,next) => {
+exports.updateMyPassword = catchAsync(async(req,res,next) => {
     // Get user from collection
     const user = await User.findById(req.user.id).select('+password');
 
