@@ -1,7 +1,7 @@
 const User = require('./../models/userModel')
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
-const sendEmail = require('./../utils/email');
+const Email = require('../utils/email');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const {promisify} = require('util')
@@ -45,6 +45,9 @@ exports.signup = catchAsync(async (req,res,next) => {
         passwordChangedAt : req.body.passwordChangedAt,
         role: req.body.role
     });
+    
+    const url = `${req.protocol}://${req.get('host')}/me`
+    new Email(newUser,url).sendWelcome();
 
     createSendToken(newUser,201,res);
 });
@@ -60,7 +63,6 @@ exports.login =catchAsync(async (req,res,next) => {
 
     // User exist and pass is correct
     const user = await User.findOne({email: email}).select('+password');
-    
     if(!user || ! await user.correctPassword(password,user.password)){
         return next(new AppError('Incorrect email or pass',401));
     }
@@ -93,7 +95,6 @@ exports.protect=catchAsync(async (req,res,next)=>{
 
     // Verification token 
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-    console.log(decoded);
     // Check if user still exist
     const currentUser = await User.findById(decoded.id);
     if (!currentUser) {
@@ -168,11 +169,7 @@ exports.forgotPassword = catchAsync(async (req,res,next) => {
     new password and passwordConfirm to: ${resetURL}.\n 
     If you didn't forget your password, please ignore this email!`;
     try{
-        await sendEmail({
-            email: user.email,
-            subject: `Your password reset token ${message} `,
-            message : message
-        });
+
         
         res.status(200).json({
             status: 'success',

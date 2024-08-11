@@ -5,10 +5,10 @@ import { updateSettings } from './updateSettings';
 
 // DOM Elements
 const mapBox = document.getElementById('map');
-const loginForm = document.getElementById('.form');
-const logOutBtn = document.getElementById('.nav__el--logout');
-const userDataForm = document.getElementById('.form-user-data');
-const userPasswordForm = document.getElementById('.form-user-password');
+const loginForm = document.querySelector('.form--login');
+const logOutBtn = document.querySelector('.nav__el--logout');
+const userDataForm = document.querySelector('.form-user-data');
+const userPasswordForm = document.querySelector('.form-user-password');
 
 
 
@@ -23,9 +23,9 @@ if(loginForm){
     document.querySelector('.form').addEventListener('submit', e=> {
         e.preventDefault();
         const email = document.getElementById('email').value;
-        const password = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
         login(email,password)
-    
+
     });
 }
 
@@ -36,9 +36,12 @@ if(logOutBtn){
 if(userDataForm){
     userDataForm.addEventListener('submit', e=> {
         e.preventDefault();
-        const email = document.getElementById('email').value;
-        const name = document.getElementById('name').value;
-        updateSettings({email,name},'data')
+        const form = new FormData();
+        form.append('name', document.getElementById('name').value)
+        form.append('email', document.getElementById('email').value)
+        form.append('photo', document.getElementById('photo').files[0])
+        console.log(form)
+        updateSettings(form,'data')
     
     });}
 
